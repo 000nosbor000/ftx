@@ -72,35 +72,41 @@ class FtxClient:
         return self._get(f'markets/{market}/trades', {'start_time': start_time, 'end_time': end_time})
 
     def get_account_info(self) -> dict:
-        return self._get(f'account')
+        return self._get('account')
 
     def get_open_orders(self, market: str = None) -> List[dict]:
-        return self._get(f'orders', {'market': market})
+        return self._get('orders', {'market': market})
 
     def get_order_history(
         self, market: str = None, side: str = None, order_type: str = None,
         start_time: float = None, end_time: float = None
     ) -> List[dict]:
-        return self._get(f'orders/history', {
-            'market': market,
-            'side': side,
-            'orderType': order_type,
-            'start_time': start_time,
-            'end_time': end_time
-        })
+        return self._get(
+            'orders/history',
+            {
+                'market': market,
+                'side': side,
+                'orderType': order_type,
+                'start_time': start_time,
+                'end_time': end_time,
+            },
+        )
 
     def get_conditional_order_history(
         self, market: str = None, side: str = None, type: str = None,
         order_type: str = None, start_time: float = None, end_time: float = None
     ) -> List[dict]:
-        return self._get(f'conditional_orders/history', {
-            'market': market,
-            'side': side,
-            'type': type,
-            'orderType': order_type,
-            'start_time': start_time,
-            'end_time': end_time
-        })
+        return self._get(
+            'conditional_orders/history',
+            {
+                'market': market,
+                'side': side,
+                'type': type,
+                'orderType': order_type,
+                'start_time': start_time,
+                'end_time': end_time,
+            },
+        )
 
     def modify_order(
         self, existing_order_id: Optional[str] = None,
@@ -112,14 +118,19 @@ class FtxClient:
         assert (price is None) or (size is None), 'Must modify price or size of order'
         path = f'orders/{existing_order_id}/modify' if existing_order_id is not None else \
             f'orders/by_client_id/{existing_client_order_id}/modify'
-        return self._post(path, {
-            **({'size': size} if size is not None else {}),
-            **({'price': price} if price is not None else {}),
-            ** ({'clientId': client_order_id} if client_order_id is not None else {}),
-        })
+        return self._post(
+            path,
+            ({'size': size} if size is not None else {})
+            | ({'price': price} if price is not None else {})
+            | (
+                {'clientId': client_order_id}
+                if client_order_id is not None
+                else {}
+            ),
+        )
 
     def get_conditional_orders(self, market: str = None) -> List[dict]:
-        return self._get(f'conditional_orders', {'market': market})
+        return self._get('conditional_orders', {'market': market})
 
     def place_order(self, market: str, side: str, price: float, size: float, type: str = 'limit',
                     reduce_only: bool = False, ioc: bool = False, post_only: bool = False,
@@ -148,7 +159,7 @@ class FtxClient:
         To send a Take Profit Market order, set type='trailing_stop' and supply a trigger_price
         To send a Trailing Stop order, set type='trailing_stop' and supply a trail_value
         """
-        assert type in ('stop', 'take_profit', 'trailing_stop')
+        assert type in {'stop', 'take_profit', 'trailing_stop'}
         assert type not in ('stop', 'take_profit') or trigger_price is not None, \
             'Need trigger prices for stop losses and take profits'
         assert type not in ('trailing_stop',) or (trigger_price is None and trail_value is not None), \
@@ -172,11 +183,14 @@ class FtxClient:
         self, market_name: str = None,
         conditional_orders: bool = False, limit_orders: bool = False
     ) -> dict:
-        return self._delete(f'orders', {
-            'market': market_name,
-            'conditionalOrdersOnly': conditional_orders,
-            'limitOrdersOnly': limit_orders
-        })
+        return self._delete(
+            'orders',
+            {
+                'market': market_name,
+                'conditionalOrdersOnly': conditional_orders,
+                'limitOrdersOnly': limit_orders,
+            },
+        )
 
     def get_fills(self, market: str = None, start_time: float = None,
         end_time: float = None, min_id: int = None, order_id: int = None
@@ -193,11 +207,8 @@ class FtxClient:
         return self._get('wallet/balances')
 
     def get_total_usd_balance(self) -> int:
-        total_usd = 0
         balances = self._get('wallet/balances')
-        for balance in balances:
-            total_usd += balance['usdValue']
-        return total_usd
+        return sum(balance['usdValue'] for balance in balances)
 
     def get_all_balances(self) -> List[dict]:
         return self._get('wallet/all_balances')
